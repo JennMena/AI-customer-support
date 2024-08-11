@@ -115,33 +115,29 @@ export default function Chat() {
 
       if (!response.ok) {
         toast.error('Failed to send the message.');
-        console.error('Error in response:', response.statusText);
+        console.error('Error:', response.statusText);
         return;
       }
 
-      const reader = response.body?.getReader(); // Create a reader to process the streamed response
+      const reader = response.body!.getReader(); // Create a reader to process the streamed response
       const decoder = new TextDecoder(); // Create a decoder to convert the streamed response into text
       let assistantResponse = '';
 
-      if (reader) {
-        await reader.read().then(function processText({ done, value }) {
-          if (done) {
-            return assistantResponse; // Return the final result when done
-          }
-          const text = decoder.decode(value || new Uint8Array(), { stream: true }); // Decode the streamed response
-          assistantResponse += text; // Accumulate the response text
-          setMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages];
-            updatedMessages[updatedMessages.length - 1] = {
-              role: 'assistant',
-              content: assistantResponse // Update the last message with the accumulated text
-            };
-            return updatedMessages;
-          });
-          return reader.read().then(processText); // Continue reading the next chunk of the response
-        });
+      // Process the text from the response
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true }); // Decode the streamed response
+        setMessages((messages) => {
+          let lastMessage = messages[messages.length - 1];  // Get the last message (assistant's placeholder)
+          let otherMessages = messages.slice(0, messages.length - 1);  // Get all other messages
+          return [
+            ...otherMessages,
+            { ...lastMessage, content: lastMessage.content + text },  // Append the decoded text to the assistant's message
+          ]
+        })
       }
-
+      
       // Save the user and assistant messages to Firestore
       if (user && currentConversationId) {
         const conversationDocRef = doc(db, "chats", currentConversationId);
@@ -159,7 +155,10 @@ export default function Chat() {
     } catch (error) {
       setMessages((messages) => [
         ...messages,
-        { role: 'assistant', content: "I'm sorry, but I encountered an error. Please try again later." },
+        { 
+          role: 'assistant', 
+          content: "I'm sorry, but I encountered an error. Please try again later." 
+        },
       ]);
       console.error('Error:', error);
     }
