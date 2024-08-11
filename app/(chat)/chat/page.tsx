@@ -10,6 +10,8 @@ import ChatArea from "@/components/ChatArea";
 import Header from "@/app/_components/Header";
 import HistoryArea from "@/components/HistoryArea";
 import { ChatMessage, Conversation } from "@/lib/types";
+import { FirebaseCollection } from "@/lib/enums";
+import { ERROR_ASSISTANT_MESSAGE, INITIAL_ASSISTANT_MESSAGE } from "@/lib/constants";
 
 
 export default function Chat() {
@@ -36,9 +38,7 @@ export default function Chat() {
 
   const createNewConversation = async () => {
     if (user && !currentConversationId) { // Check if the user is authenticated and there's no active conversation
-
-      const chatsRef = collection(db, "chats");
-
+      const chatsRef = collection(db, FirebaseCollection.CHATS);
       const conversationId = `${user.id}_${Timestamp.now().toDate().toISOString()}`; // Generate ID based on user ID and timestamp
       const conversationDocRef = doc(chatsRef, conversationId);
 
@@ -49,11 +49,13 @@ export default function Chat() {
       });
       setCurrentConversationId(conversationDocRef.id);
       fetchHistory();
-      // Set initial messsages
-      setMessages( [{
+      const initialAssistantMessage: ChatMessage = {
         role: 'assistant',
-        content: `Hi! I'm your travel assistant, here to help you explore amazing destinations, discover the best places to eat, find exciting events, and capture the best photo spots. Where are you planning to go, and how can I assist you today?`
-      }]);
+        content: INITIAL_ASSISTANT_MESSAGE,
+        createdAt: Timestamp.now(),
+      };
+      setMessages( [initialAssistantMessage]);
+      await saveMessage(initialAssistantMessage);
     }
   };
 
@@ -63,6 +65,14 @@ export default function Chat() {
       fetchHistory();
     }
   }, [user]);
+
+  const saveMessage = async (message: ChatMessage) => {
+    if (user && currentConversationId) {
+      const conversationDocRef = doc(db, FirebaseCollection.CHATS, currentConversationId);
+      const messagesRef = collection(conversationDocRef, FirebaseCollection.MESSAGES);
+      await addDoc(messagesRef, message);
+    }
+  };
 
   const sendMessages = async () => {
     if (isLoading) {
@@ -140,27 +150,24 @@ export default function Chat() {
       }
       
       // Save the user and assistant messages to Firestore
-      if (user && currentConversationId) {
-        const conversationDocRef = doc(db, "chats", currentConversationId);
-        const messagesRef = collection(conversationDocRef, "messages");
-
-        await addDoc(messagesRef, userMessage);
-
-        const assistantMessage = {
-          role: 'assistant',
-          content: assistantResponse,
-          createdAt: Timestamp.now(),
-        };
-        await addDoc(messagesRef, assistantMessage);
-      }
+      await saveMessage(userMessage);
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: assistantResponse,
+        createdAt: Timestamp.now(),
+      };
+      await saveMessage(assistantMessage);
     } catch (error) {
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: ERROR_ASSISTANT_MESSAGE,
+        createdAt: Timestamp.now(),
+      };
       setMessages((messages) => [
         ...messages,
-        { 
-          role: 'assistant', 
-          content: "I'm sorry, but I encountered an error. Please try again later." 
-        },
+        assistantMessage
       ]);
+      await saveMessage(assistantMessage);
       console.error('Error:', error);
     }
 
@@ -169,7 +176,7 @@ export default function Chat() {
 
   //Fetch user chats
   const fetchHistory = async () => {
-    const chatsRef = collection(db, "chats");
+    const chatsRef = collection(db, FirebaseCollection.CHATS);
     const q = query(chatsRef,
       where('userId', '==', user?.id),
       orderBy('createdAt', 'desc'));
@@ -182,7 +189,7 @@ export default function Chat() {
       const conversationData = conversation.data();
 
       // Fetch the last message
-      const messagesRef = collection(db, 'chats', conversationId, 'messages');
+      const messagesRef = collection(db, FirebaseCollection.CHATS, conversationId, FirebaseCollection.MESSAGES);
       const lastMessageQuery = query(messagesRef, orderBy('createdAt', 'desc'), limit(1));
       const lastMessageSnapshot = await getDocs(lastMessageQuery);
 
@@ -212,7 +219,7 @@ export default function Chat() {
 
   const onDeleteConversation = async (id: string) => {
     try {
-      await deleteDoc(doc(db, "chats", id));
+      await deleteDoc(doc(db, FirebaseCollection.CHATS, id));
 
       setConversations((prevConversations) =>
         prevConversations.filter((conversation) => conversation.id !== id)
@@ -226,7 +233,7 @@ export default function Chat() {
   };
 
   const changeConversation = async (id: string) => {
-    const messagesRef = collection(db, "chats", id, "messages");
+    const messagesRef = collection(db, FirebaseCollection.CHATS, id, FirebaseCollection.MESSAGES);
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
     const querySnapshot = await getDocs(q);
 
