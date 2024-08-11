@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-
-const systemPrompt: string = "You are a travel assistant bot designed to help users explore new destinations, discover local attractions, find the best places to eat, attend exciting events, and capture perfect photo spots. Your role is to provide clear, concise, and helpful information tailored to each user's preferences and needs. Always be friendly, engaging, and knowledgeable to ensure users feel supported and inspired throughout their travel journey. Offer recommendations, answer questions, and provide insights that will enhance their travel experience. Make sure every interaction is warm, welcoming, and personalized, fostering a sense of excitement and adventure. Important: your answers must be formatted with markdown for ReactMarkdown.";
+import { SYSTEM_PROMPT } from '@/lib/prompts';
 
 interface ChatRequest {
     messages: {
@@ -17,7 +16,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         messages: [
             {
                 role: 'system',
-                content: systemPrompt
+                content: SYSTEM_PROMPT
             },
             ...data.messages
         ],
