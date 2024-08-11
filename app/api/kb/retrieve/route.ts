@@ -1,18 +1,11 @@
-import { PineconeStore } from "@langchain/pinecone";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { embeddings, llm, pineconeIndex } from "@/lib/ai";
+import { createVectorStore, llm } from "@/lib/ai";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   const { question } = await request.json();
-  const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
-    pineconeIndex,
-    // Maximum number of batch requests to allow at once. Each batch is 1000 vectors.
-    maxConcurrency: 5,
-    // You can pass a namespace here too
-    // namespace: "foo",
-  });
+  const vectorStore = await createVectorStore();
 
   // 1. Retrieve the most relevant results
   const retriever = vectorStore.asRetriever({

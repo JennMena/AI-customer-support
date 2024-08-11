@@ -1,7 +1,6 @@
 import { Document as VectorDocument } from "langchain/document";
-import { PineconeStore } from "@langchain/pinecone";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { embeddings, pineconeIndex } from "@/lib/ai";
+import { createVectorStore } from "@/lib/ai";
 
 /**
  * Ingest a text file into the vector store for retrieval.
@@ -22,7 +21,11 @@ export async function POST(request: Request) {
   // Read the file and create a document
   const text = await file.text();
   const doc = new VectorDocument({
-    pageContent: text
+    pageContent: text,
+    metadata: {
+      sourceFile: file.name,
+      sourceType: "file"
+    }
   });
 
   // 1. Split the text into chunks
@@ -33,13 +36,7 @@ export async function POST(request: Request) {
   const splits = await textSplitter.splitDocuments([doc]);
 
   // 2. Store the splits in the vector store
-  const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
-    pineconeIndex,
-    // Maximum number of batch requests to allow at once. Each batch is 1000 vectors.
-    maxConcurrency: 5,
-    // You can pass a namespace here too
-    // namespace: "foo",
-  });
+  const vectorStore = await createVectorStore();
   await vectorStore.addDocuments(splits);
   return Response.json({ message: "Ingested successfully" });
 }
