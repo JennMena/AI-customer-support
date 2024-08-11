@@ -3,66 +3,85 @@
 import { useState, useEffect, useRef } from "react";
 import { SignedOut, SignedIn, SignInButton, UserButton } from '@clerk/nextjs'
 import { db } from "../../../firebaseConfig";
-import { collection, doc, addDoc, getDocs, query, orderBy, Timestamp, setDoc } from "firebase/firestore";
+import { collection, doc, addDoc, getDocs, query, where, orderBy, Timestamp, setDoc, limit, deleteDoc } from "firebase/firestore";
 import { useUser } from "@clerk/nextjs";
 import ChatArea from "@/components/ChatArea";
 import Header from "@/app/_components/Header";
 import HistoryArea from "@/components/HistoryArea";
 
+import toast from 'react-hot-toast';
+import { AlertCircle } from "lucide-react";
+
 export default function Chat() {
-
-  ////This is temporary until I implement the fetching of the chats
-  const [conversations, setConversations] = useState([
-    { id: 1, title: 'Trip to Paris', lastMessage: '...' },
-    { id: 2, title: 'New York', lastMessage: '...' },
-    { id: 3, title: 'Exploring', lastMessage: '...' },
-  ]);
-  //////////////////////////
-
-  const ref = useRef(null);
 
   const { user } = useUser();
 
-  const [messages, setMessages] = useState([{
-    role: 'assistant',
-    content: `Hi! I'm your travel assistant, here to help you explore amazing destinations, discover the best places to eat, find exciting events, and capture the best photo spots. Where are you planning to go, and how can I assist you today?`
-  }]);
+  const [conversations, setConversations] = useState<{ id: string; title: string; lastMessage: string }[]>([]);
+  let firstMessage = false;
+
+  const [messages, setMessages] = useState([]);
 
   const [message, setMessage] = useState('');
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   const handleSelectConversation = (conversationId: string) => {
     setCurrentConversationId(conversationId);
+    if (currentConversationId !== conversationId) {
+      changeConversation(conversationId);
+      fetchHistory();
+    }
+  };
+
+  const createNewConversation = async () => {
+    if (user && !currentConversationId) { // Check if the user is authenticated and there's no active conversation
+
+      const chatsRef = collection(db, "chats");
+
+      const conversationId = `${user.id}_${Timestamp.now().toDate().toISOString()}`; // Generate ID based on user ID and timestamp
+      const conversationDocRef = doc(chatsRef, conversationId);
+
+      await setDoc(conversationDocRef, {
+        userId: user.id,
+        conversationId: conversationId,
+        createdAt: Timestamp.now(),
+      });
+      setCurrentConversationId(conversationDocRef.id);
+      fetchHistory();
+      const initialMsg = [{
+        role: 'assistant',
+        content: `Hi! I'm your travel assistant, here to help you explore amazing destinations, discover the best places to eat, find exciting events, and capture the best photo spots. Where are you planning to go, and how can I assist you today?`
+      }];
+      setMessages(initialMsg);
+    }
   };
 
   useEffect(() => {
-    const createNewConversation = async () => {
-      if (user && !currentConversationId) { // Check if the user is authenticated and there's no active conversation
-
-        const chatsRef = collection(db, "chats");
-
-        const conversationId = `${user.id}_${Timestamp.now().toDate().toISOString()}`; // Generate ID based on user ID and timestamp
-        const conversationDocRef = doc(chatsRef, conversationId);
-
-        await setDoc(conversationDocRef, {
-          userId: user.id,
-          conversationId: conversationId,
-          createdAt: Timestamp.now(),
-        });
-
-        setCurrentConversationId(conversationDocRef.id);
-      }
-    };
-
-    createNewConversation();
+    if (user) {
+      createNewConversation();
+      fetchHistory();
+    }
   }, [user]);
 
-
   const sendMessages = async () => {
-
     if (!message.trim() || !currentConversationId) {
       setMessage('');
-      return; //TO DO: send a toast warning 
+      toast.custom((t) => (
+        <div
+          className={`${t.visible ? 'animate-enter' : 'animate-leave'
+            } max-w-md w-sm bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg shadow-lg`}
+          style={{ animationDuration: '1s' }}
+        >
+          <div className="flex items-center">
+            <AlertCircle className="w-5 h-5 text-yellow-800" />
+            <div className="ml-2">
+              Oops! It looks like you forgot to type something.
+            </div>
+          </div>
+        </div>
+      ), { duration: 1500 });
+
+
+      return;
     }
 
     const userMessage = {
@@ -132,12 +151,89 @@ export default function Chat() {
     }
   };
 
+  //Fetch user chats
+  const fetchHistory = async () => {
+    const chatsRef = collection(db, "chats");
+    const q = query(chatsRef,
+      where('userId', '==', user?.id),
+      orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+
+    let history = [];
+
+    for (const conversation of querySnapshot.docs) {
+      const conversationId = conversation.id;
+      const conversationData = conversation.data();
+
+      // Fetch the last message
+      const messagesRef = collection(db, 'chats', conversationId, 'messages');
+      const lastMessageQuery = query(messagesRef, orderBy('createdAt', 'desc'), limit(1));
+      const lastMessageSnapshot = await getDocs(lastMessageQuery);
+
+      let lastMessage = 'No messages';
+      if (!lastMessageSnapshot.empty) {
+        lastMessage = lastMessageSnapshot.docs[0].data().content;
+      }
+
+      const createdAtDate = conversationData.createdAt.toDate();
+      const formattedDate = createdAtDate.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric'
+      });
+
+      history.push({
+        id: conversationId,
+        title: `Chat of ${formattedDate}`,
+        lastMessage: lastMessage,
+      });
+    }
+
+    setConversations(history);
+  };
+
+  const onDeleteConversation = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "chats", id));
+
+      setConversations((prevConversations) =>
+        prevConversations.filter((conversation) => conversation.id !== id)
+      );
+
+      toast.success("Conversation deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      toast.error("Failed to delete the conversation.");
+    }
+  };
+
+  const changeConversation = async (id: string) => {
+    const messagesRef = collection(db, "chats", id, "messages");
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    const querySnapshot = await getDocs(q);
+
+    const conversationMessages = querySnapshot.docs.map((doc) => ({
+      role: doc.data().role,
+      content: doc.data().content,
+    }));
+
+    setMessages(conversationMessages);
+  };
+
+
+
   return (
     <div>
-      <Header />
+      <Header/>
       <div className="flex flex-col md:flex-row w-full" style={{ height: 'calc(100vh - 4rem)' }}>
         <div className="hidden md:block md:w-1/3 mt-10 md:mt-0 bg-gray-100 dark:bg-slate-800 p-4 rounded-sm overflow-y-auto">
-          <HistoryArea conversations={conversations} onSelectConversation={handleSelectConversation} user={user} />
+          <HistoryArea conversations={conversations}
+            onSelectConversation={handleSelectConversation}
+            onDeleteConversation={onDeleteConversation}
+            currentConversationId={currentConversationId}
+            user={user} />
         </div>
         <div className="md:w-2/3 lg:w-3/4 w-full">
           <ChatArea
@@ -145,7 +241,7 @@ export default function Chat() {
             messages={messages}
             setMessage={setMessage}
             sendMessages={sendMessages}
-            ref={ref}
+
           />
         </div>
       </div>
