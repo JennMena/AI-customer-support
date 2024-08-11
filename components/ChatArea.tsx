@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { SendHorizontalIcon, ThumbsUpIcon, ThumbsDownIcon } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
@@ -43,6 +43,16 @@ export default function ChatArea({
             [index]: true
         }));
     };
+
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+
+    const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+
+    useEffect(() => {
+      scrollToBottom()
+    }, [messages])
 
     return (
         <div className="text-zinc-700">
@@ -94,6 +104,7 @@ export default function ChatArea({
                                 )}
                             </div>
                         ))}
+                        <div ref={messagesEndRef} />
                     </ScrollArea>
                 </div>
                 {/* input form */}
