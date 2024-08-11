@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Outfit } from "next/font/google";
+import { ClerkProvider } from '@clerk/nextjs'
 import "./globals.css";
-import { ClerkProvider, SignedOut, SignedIn, SignInButton, UserButton } from '@clerk/nextjs'
 
 
 const inter = Outfit({ subsets: ["latin"] });

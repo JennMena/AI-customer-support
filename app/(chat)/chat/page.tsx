@@ -1,27 +1,29 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react";
-import { SignedOut, SignedIn, SignInButton, UserButton } from '@clerk/nextjs'
-import { db } from "../../../firebaseConfig";
+import { useState, useEffect } from "react";
+import toast from 'react-hot-toast';
+import { AlertCircle } from "lucide-react";
 import { collection, doc, addDoc, getDocs, query, where, orderBy, Timestamp, setDoc, limit, deleteDoc } from "firebase/firestore";
 import { useUser } from "@clerk/nextjs";
+import { db } from "../../../firebaseConfig";
 import ChatArea from "@/components/ChatArea";
 import Header from "@/app/_components/Header";
 import HistoryArea from "@/components/HistoryArea";
+import { ChatMessage, Conversation } from "@/lib/types";
 
-import toast from 'react-hot-toast';
-import { AlertCircle } from "lucide-react";
 
 export default function Chat() {
 
   const { user } = useUser();
 
-  const [conversations, setConversations] = useState<{ id: string; title: string; lastMessage: string }[]>([]);
-  let firstMessage = false;
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [message, setMessage] = useState('');
+
+  const [isLoading, setIsLoading] = useState(false)
+
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   const handleSelectConversation = (conversationId: string) => {
@@ -47,11 +49,11 @@ export default function Chat() {
       });
       setCurrentConversationId(conversationDocRef.id);
       fetchHistory();
-      const initialMsg = [{
+      // Set initial messsages
+      setMessages( [{
         role: 'assistant',
         content: `Hi! I'm your travel assistant, here to help you explore amazing destinations, discover the best places to eat, find exciting events, and capture the best photo spots. Where are you planning to go, and how can I assist you today?`
-      }];
-      setMessages(initialMsg);
+      }]);
     }
   };
 
@@ -63,6 +65,10 @@ export default function Chat() {
   }, [user]);
 
   const sendMessages = async () => {
+    if (isLoading) {
+      return;
+    }
+
     if (!message.trim() || !currentConversationId) {
       setMessage('');
       toast.custom((t) => (
@@ -79,12 +85,10 @@ export default function Chat() {
           </div>
         </div>
       ), { duration: 1500 });
-
-
       return;
     }
 
-    const userMessage = {
+    const userMessage: ChatMessage = {
       role: 'user',
       content: message,
       createdAt: Timestamp.now(),
@@ -95,61 +99,72 @@ export default function Chat() {
       userMessage,
       { role: 'assistant', content: '' }
     ]);
-
     setMessage('');
+    setIsLoading(true);
 
-    // Send the user's message to the API endpoint for processing
-    const response = await fetch('/api/kb/retrieve', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      //body: JSON.stringify({ messages: [...messages, userMessage] }),
-      body: JSON.stringify({ question: userMessage.content }),
-    });
-
-    if (!response.ok) {
-      console.error('Error in response:', response.statusText);
-      return;
-    }
-
-    const reader = response.body?.getReader(); // Create a reader to process the streamed response
-    const decoder = new TextDecoder(); // Create a decoder to convert the streamed response into text
-    let assistantResponse = '';
-
-    if (reader) {
-      await reader.read().then(function processText({ done, value }) {
-        if (done) {
-          return assistantResponse; // Return the final result when done
-        }
-        const text = decoder.decode(value || new Uint8Array(), { stream: true }); // Decode the streamed response
-        assistantResponse += text; // Accumulate the response text
-        setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages];
-          updatedMessages[updatedMessages.length - 1] = {
-            role: 'assistant',
-            content: assistantResponse // Update the last message with the accumulated text
-          };
-          return updatedMessages;
-        });
-        return reader.read().then(processText); // Continue reading the next chunk of the response
+    try {
+      // Send the user's message to the API endpoint for processing
+      const response = await fetch('/api/kb/retrieve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        //body: JSON.stringify({ messages: [...messages, userMessage] }),
+        body: JSON.stringify({ question: userMessage.content }),
       });
+
+      if (!response.ok) {
+        toast.error('Failed to send the message.');
+        console.error('Error in response:', response.statusText);
+        return;
+      }
+
+      const reader = response.body?.getReader(); // Create a reader to process the streamed response
+      const decoder = new TextDecoder(); // Create a decoder to convert the streamed response into text
+      let assistantResponse = '';
+
+      if (reader) {
+        await reader.read().then(function processText({ done, value }) {
+          if (done) {
+            return assistantResponse; // Return the final result when done
+          }
+          const text = decoder.decode(value || new Uint8Array(), { stream: true }); // Decode the streamed response
+          assistantResponse += text; // Accumulate the response text
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages];
+            updatedMessages[updatedMessages.length - 1] = {
+              role: 'assistant',
+              content: assistantResponse // Update the last message with the accumulated text
+            };
+            return updatedMessages;
+          });
+          return reader.read().then(processText); // Continue reading the next chunk of the response
+        });
+      }
+
+      // Save the user and assistant messages to Firestore
+      if (user && currentConversationId) {
+        const conversationDocRef = doc(db, "chats", currentConversationId);
+        const messagesRef = collection(conversationDocRef, "messages");
+
+        await addDoc(messagesRef, userMessage);
+
+        const assistantMessage = {
+          role: 'assistant',
+          content: assistantResponse,
+          createdAt: Timestamp.now(),
+        };
+        await addDoc(messagesRef, assistantMessage);
+      }
+    } catch (error) {
+      setMessages((messages) => [
+        ...messages,
+        { role: 'assistant', content: "I'm sorry, but I encountered an error. Please try again later." },
+      ]);
+      console.error('Error:', error);
     }
 
-    // Save the user and assistant messages to Firestore
-    if (user && currentConversationId) {
-      const conversationDocRef = doc(db, "chats", currentConversationId);
-      const messagesRef = collection(conversationDocRef, "messages");
-
-      await addDoc(messagesRef, userMessage);
-
-      const assistantMessage = {
-        role: 'assistant',
-        content: assistantResponse,
-        createdAt: Timestamp.now(),
-      };
-      await addDoc(messagesRef, assistantMessage);
-    }
+    setIsLoading(false);
   };
 
   //Fetch user chats
@@ -242,12 +257,10 @@ export default function Chat() {
             messages={messages}
             setMessage={setMessage}
             sendMessages={sendMessages}
-
+            disabled={isLoading}
           />
         </div>
       </div>
     </div>
-
-
   );
 }

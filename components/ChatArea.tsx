@@ -1,22 +1,27 @@
+import { SendHorizontalIcon } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
+import { useUser } from "@clerk/nextjs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SendHorizontalIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useUser } from "@clerk/nextjs";
-import ReactMarkdown from 'react-markdown';
+import { ChatMessage } from "@/lib/types";
+
+interface ChatAreaProps {
+  message: string;
+  messages: ChatMessage[];
+  setMessage: (message: string) => void;
+  sendMessages: () => Promise<void>;
+  disabled: boolean;
+}
 
 export default function ChatArea({
     message,
     messages,
     setMessage,
     sendMessages,
-}: {
-    message: string;
-    messages: { role: string; content: string }[];
-    setMessage: (message: string) => void;
-    sendMessages: () => Promise<void>;
-}) {
+    disabled,
+}: ChatAreaProps) {
 
     const { user } = useUser();
     const userImage = user?.imageUrl;
@@ -69,7 +74,8 @@ export default function ChatArea({
                         className="pr-12 placeholder:italic placeholder:text-zinc-600 w-full"
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                          if (e.key === 'Enter') {
+                                if (disabled) return;
                                 e.preventDefault(); 
                                 sendMessages(); 
                             }
@@ -81,6 +87,7 @@ export default function ChatArea({
                         variant="secondary"
                         className="absolute right-1 top-1 h-8 w-10"
                         onClick={sendMessages}
+                        disabled={disabled}
                     >
                         <SendHorizontalIcon className="h-5 w-5 text-emerald-500" />
                     </Button>
