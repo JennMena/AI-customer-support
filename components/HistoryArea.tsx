@@ -1,4 +1,7 @@
 import React from 'react';
+import { useUser } from "@clerk/nextjs";
+
+type UserResource = ReturnType<typeof useUser>["user"];
 
 interface Conversation {
   id: string;
@@ -9,6 +12,7 @@ interface Conversation {
 interface ConversationListProps {
   conversations: Conversation[];
   onSelectConversation: (id: string) => void;
+  user: UserResource;
 }
 
 const HistoryArea: React.FC<ConversationListProps> = ({ conversations, onSelectConversation, user}) => {
