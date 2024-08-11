@@ -1,7 +1,7 @@
 import React from 'react'
-import Constants from '../_utils/Constants'
 import Image from 'next/image'
 import Header from './Header'
+import { DESC_HERO } from '@/lib/constants'
 
 function LandingPage() {
     return (
@@ -20,7 +20,7 @@ function LandingPage() {
                             Discover, explore, and plan your perfect trip with WanderTalk!
                         </h1>
                         <p className="mt-4 sm:text-xl/relaxed text-gray-300 bg-white bg-opacity-30 backdrop-blur-lg p-4 rounded-lg shadow-lg">
-                            {Constants.descHero}
+                            {DESC_HERO}
                         </p>
 
                         <div className="mt-8 flex flex-wrap justify-center gap-4">

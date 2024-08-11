@@ -1,12 +1,29 @@
+
 import { Trash } from 'lucide-react'; // Importing the trash icon from lucide-react
 import toast, { Toaster } from 'react-hot-toast'; // Importing the toast function from react-hot-toast
+
+import React from 'react';
+import { useUser } from "@clerk/nextjs";
+
+type UserResource = ReturnType<typeof useUser>["user"];
+
+interface Conversation {
+  id: string;
+  title: string;
+  lastMessage: string;
+}
+
 
 interface ConversationListProps {
   conversations: { id: string; title: string; lastMessage: string }[];
   onSelectConversation: (id: string) => void;
+
   onDeleteConversation: (id: string) => void;
   user: { firstName: string };
   currentConversationId: string;
+
+  user: UserResource;
+
 }
 
 const HistoryArea: React.FC<ConversationListProps> = ({ conversations, onSelectConversation, onDeleteConversation, user, currentConversationId }) => {
