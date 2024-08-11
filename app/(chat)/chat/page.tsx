@@ -1,98 +1,133 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SignedOut, SignedIn, SignInButton, UserButton } from '@clerk/nextjs'
+import { db } from "../../../firebaseConfig";
+import { collection, doc, addDoc, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { useUser } from "@clerk/nextjs";
+import ChatArea from "@/components/ChatArea";
+import Header from "@/app/_components/Header";
+
 
 export default function Home() {
 
+  const ref = useRef(null);
+
+  const { user } = useUser();
   const [messages, setMessages] = useState([{
     role: 'assistant',
     content: `Hi! I'm your assistant to guide you in your international application to US colleges. Tell me about your journey, what is your dream school and where are you applying from?`
   }]);
 
   const [message, setMessage] = useState('');
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (user && !currentConversationId) {
+        const conversationsRef = collection(db, "chats", user.id, "conversations");
+        const conversationDoc = await addDoc(conversationsRef, {
+          createdAt: Timestamp.now(),
+          userdId: user.id,
+        });
+        setCurrentConversationId(conversationDoc.id);
+
+        const messagesRef = collection(db, "chats", user.id, "conversations", conversationDoc.id, "messages");
+        const messagesQuery = query(messagesRef, orderBy("createdAt"));
+        const messagesSnapshot = await getDocs(messagesQuery);
+        const messagesList = messagesSnapshot.docs.map(doc => doc.data());
+        setMessages(messagesList.length ? messagesList : messages);
+      }
+    };
+
+    fetchMessages();
+  }, [user]);
 
   const sendMessages = async () => {
-    if (!message.trim()) return;
-    setMessages((prevMessages) => 
-      [
-        ...prevMessages,
-        { role: 'user', content: message },
-        { role: 'assistant', content: '' }
-      ]
-    );
+    console.log(messages)
+    if (!message.trim() || !currentConversationId) return;
+
+    const userMessage = {
+      role: 'user',
+      content: message,
+      createdAt: Timestamp.now(),
+    };
+
+    // Update local state to include the user's message
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      userMessage,
+      { role: 'assistant', content: '' }
+    ]);
+
     setMessage('');
-    const response = await fetch('api/chat', {
+
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ messages: [...messages, { role: 'user', content: message }] }), 
+      body: JSON.stringify({ messages: [...messages, userMessage] }),
     });
 
     if (!response.ok) {
       console.error('Error in response:', response.statusText);
-      return; // Handle error response
+      return;
     }
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
-
     let result = '';
+
     if (reader) {
-      return reader.read().then(function processText({ done, value }: { done: boolean; value?: Uint8Array }): string | Promise<string> {
+      await reader.read().then(function processText({ done, value }) {
         if (done) {
           return result;
         }
         const text = decoder.decode(value || new Uint8Array(), { stream: true });
-        setMessages((messages) => {
-          let lastMessage = messages[messages.length - 1];
-          let otherMessages = messages.slice(0, messages.length - 1);
-          return ([
+        setMessages((prevMessages) => {
+          let lastMessage = prevMessages[prevMessages.length - 1];
+          let otherMessages = prevMessages.slice(0, prevMessages.length - 1);
+          return [
             ...otherMessages,
             {
               ...lastMessage,
               content: lastMessage.content + text
             },
-          ]);
+          ];
         });
         return reader.read().then(processText);
       });
     }
+
+
+  // Save the user and assistant messages to Firestore
+  if (user && currentConversationId) {
+    const conversationDocRef = doc(db, "chats", currentConversationId);
+    const messagesRef = collection(conversationDocRef, "messages");
+
+    // Save the user message
+    await addDoc(messagesRef, userMessage);
+
+    // Save the assistant message with the completed response
+    const assistantMessage = {
+      role: 'assistant',
+      content: result,
+      createdAt: Timestamp.now(),
+    };
+    await addDoc(messagesRef, assistantMessage);
   }
+  };
 
   return (
-    <div className="w-screen h-screen flex flex-col justify-center items-center">
-      <UserButton/>
-      <div className="flex flex-col w-[600px] h-[700px] border border-black p-2 space-y-2">
-        
-        <div className="flex flex-col space-y-2 flex-grow overflow-auto max-h-full">
-          {
-            messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex justify-${msg.role === 'assistant' ? 'start' : 'end'}`}
-              >
-                <div
-                  className={`bg-${msg.role === 'assistant' ? 'blue-500' : 'green-500'} text-white rounded-lg p-3`}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            ))
-          }
-        </div>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            className="border border-gray-300 rounded-lg p-2 flex-grow"
-            placeholder="message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)} />
-          <button className="bg-blue-500 text-white rounded-lg px-4 py-2" onClick={sendMessages}>
-            Send
-          </button>
-        </div>
-      </div>
+    <div>
+      <Header/>
+      <ChatArea message={message}
+        messages={messages}
+        setMessage={setMessage}
+        sendMessages={sendMessages}
+        ref={ref}
+      ></ChatArea>
     </div>
   );
+
 }

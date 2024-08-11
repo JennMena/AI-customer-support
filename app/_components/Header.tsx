@@ -2,6 +2,7 @@
 import { useUser } from "@clerk/nextjs";
 import Image from 'next/image'
 import React from 'react'
+import { SignedOut, SignedIn, SignInButton, UserButton } from '@clerk/nextjs'
 
 export default function Header() {
     const { isSignedIn } = useUser();
@@ -10,7 +11,7 @@ export default function Header() {
             <header className="bg-white">
                 <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8 border-b">
 
-                <Image src='/logo.svg' alt="Logo" width={150} height={100}/>
+                    <Image src='/logo.svg' alt="Logo" width={150} height={100} />
 
                     <div className="flex flex-1 items-center justify-end md:justify-between">
                         <nav aria-label="Global" className="hidden md:block">
@@ -27,19 +28,27 @@ export default function Header() {
 
                         <div className="flex items-center gap-4">
                             <div className="sm:flex sm:gap-4">
-                                <a
-                                    className="block rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
-                                    href={isSignedIn ? 'chat' : 'sign-in'}
-                                >
-                                    Get Started
-                                </a>
+                                {!isSignedIn && (
+                                    <a
+                                        className="block rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 "
+                                        href='sign-in'
+                                    >
+                                        Get Started
+                                    </a>
+                                )}
+                                {!isSignedIn && (
+                                    <a
+                                        className="hidden rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-blue-600 transition hover:text-blue-600/75 sm:block"
+                                        href={isSignedIn ? 'chat' : 'sign-up'}
+                                    >
+                                        Register
+                                    </a>
+                                )}
+                                
+                                {isSignedIn && (
+                                    <UserButton/>
+                                )}
 
-                                <a
-                                    className="hidden rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-blue-600 transition hover:text-blue-600/75 sm:block"
-                                    href={isSignedIn ? 'chat' : 'sign-up'}
-                                >
-                                    Register
-                                </a>
                             </div>
 
                             <button
