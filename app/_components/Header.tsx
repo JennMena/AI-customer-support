@@ -38,7 +38,9 @@ export default function Header() {
                                 )}
 
                                 {isSignedIn && (
+                                  <div className="flex items-center">
                                     <UserButton />
+                                  </div>
                                 )}
                                 {!isSignedIn && (
                                     <a
