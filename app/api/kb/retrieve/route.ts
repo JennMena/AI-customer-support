@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { createVectorStore, llm } from "@/lib/ai";
+import { RAG_PROMPT } from "@/lib/prompts";
 
 interface RetrieveRequest {
   question: string;
