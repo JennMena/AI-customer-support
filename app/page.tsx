@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import Header from "./_components/Header";
+"use client";
+
 import LandingPage from "./_components/LandingPage";
 
 export default function Home() {

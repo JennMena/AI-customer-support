@@ -99,12 +99,13 @@ export default function Chat() {
     setMessage('');
 
     // Send the user's message to the API endpoint for processing
-    const response = await fetch('/api/chat', {
+    const response = await fetch('/api/kb/retrieve', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ messages: [...messages, userMessage] }),
+      //body: JSON.stringify({ messages: [...messages, userMessage] }),
+      body: JSON.stringify({ question: userMessage.content }),
     });
 
     if (!response.ok) {
