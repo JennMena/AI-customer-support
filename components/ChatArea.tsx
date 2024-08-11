@@ -11,13 +11,11 @@ export default function ChatArea({
     messages,
     setMessage,
     sendMessages,
-    ref,
 }: {
     message: string;
     messages: { role: string; content: string }[];
     setMessage: (message: string) => void;
     sendMessages: () => Promise<void>;
-    ref: React.RefObject<HTMLDivElement>;
 }) {
 
     const { user } = useUser();
@@ -31,7 +29,6 @@ export default function ChatArea({
                     {/* response container */}
                     <ScrollArea
                         className="mb-2 h-[550px] rounded-md border p-4 flex flex-col space-y-2 flex-grow overflow-auto max-h-full"
-                        ref={ref}
                     >
                         {messages.map((m, index) => (
                             <div
@@ -82,7 +79,6 @@ export default function ChatArea({
                         size="icon"
                         type="button"
                         variant="secondary"
-                        /*disabled={isLoading}*/
                         className="absolute right-1 top-1 h-8 w-10"
                         onClick={sendMessages}
                     >
