@@ -72,7 +72,7 @@ export default function ChatArea({
                                     <ReactMarkdown>
                                         {m.content}
                                     </ReactMarkdown>
-                                    {m.role === 'assistant' && index > 0 && (
+                                    {m.role === 'assistant' && index > 0 && m.content && (
                                         <div className="flex space-x-2 mt-2">
                                             <ThumbsUpIcon
                                                 className={`h-5 w-5 ${thumbs[index]?.up ? 'text-green-500' : 'text-gray-500'} ${thumbsClicked[index] ? 'cursor-not-allowed' : 'cursor-pointer'}`}
