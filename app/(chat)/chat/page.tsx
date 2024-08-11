@@ -36,42 +36,63 @@ export default function Chat() {
     }
   };
 
-  const createNewConversation = async () => {
-    if (user && !currentConversationId) { // Check if the user is authenticated and there's no active conversation
-      const chatsRef = collection(db, FirebaseCollection.CHATS);
-      const conversationId = `${user.id}_${Timestamp.now().toDate().toISOString()}`; // Generate ID based on user ID and timestamp
-      const conversationDocRef = doc(chatsRef, conversationId);
+  /** Starts a new conversation without saving it to Firestore. */
+  const startNewConversation = async () => {
+    const initialAssistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: INITIAL_ASSISTANT_MESSAGE,
+    };
+    setMessages( [initialAssistantMessage]);
+  }
 
-      await setDoc(conversationDocRef, {
-        userId: user.id,
-        conversationId: conversationId,
-        createdAt: Timestamp.now(),
-      });
-      setCurrentConversationId(conversationDocRef.id);
-      fetchHistory();
-      const initialAssistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: INITIAL_ASSISTANT_MESSAGE,
-        createdAt: Timestamp.now(),
-      };
-      setMessages( [initialAssistantMessage]);
-      await saveMessage(initialAssistantMessage);
+  const saveNewConversation = async () => {
+    if (!user) { // Check if the user is authenticated
+      throw new Error('User is not authenticated');
+    }
+      
+    const chatsRef = collection(db, FirebaseCollection.CHATS);
+    const conversationId = `${user.id}_${Timestamp.now().toDate().toISOString()}`; // Generate ID based on user ID and timestamp
+    const conversationDocRef = doc(chatsRef, conversationId);
+
+    await setDoc(conversationDocRef, {
+      userId: user.id,
+      conversationId: conversationId,
+      createdAt: Timestamp.now(),
+    });
+    setCurrentConversationId(conversationDocRef.id);
+    fetchHistory();
+    const initialAssistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: INITIAL_ASSISTANT_MESSAGE,
+      createdAt: Timestamp.now(),
+    };
+    setMessages([initialAssistantMessage]);
+    await saveMessage(initialAssistantMessage, conversationDocRef.id);
+    return conversationDocRef.id;
+  };
+
+  const getConversationId = async () => {
+    try {
+      return currentConversationId || await saveNewConversation();
+    }
+    catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to create a new conversation.');
+      return null;
     }
   };
 
   useEffect(() => {
     if (user) {
-      createNewConversation();
+      startNewConversation();
       fetchHistory();
     }
   }, [user]);
 
-  const saveMessage = async (message: ChatMessage) => {
-    if (user && currentConversationId) {
-      const conversationDocRef = doc(db, FirebaseCollection.CHATS, currentConversationId);
-      const messagesRef = collection(conversationDocRef, FirebaseCollection.MESSAGES);
-      await addDoc(messagesRef, message);
-    }
+  const saveMessage = async (message: ChatMessage, conversationId: string) => {
+    const conversationDocRef = doc(db, FirebaseCollection.CHATS, conversationId);
+    const messagesRef = collection(conversationDocRef, FirebaseCollection.MESSAGES);
+    await addDoc(messagesRef, message);
   };
 
   const sendMessages = async () => {
@@ -79,7 +100,7 @@ export default function Chat() {
       return;
     }
 
-    if (!message.trim() || !currentConversationId) {
+    if (!message.trim()) {
       setMessage('');
       toast.custom((t) => (
         <div
@@ -103,6 +124,11 @@ export default function Chat() {
       content: message,
       createdAt: Timestamp.now(),
     };
+
+    const conversationId = await getConversationId();
+    if (!conversationId) {
+      return;
+    }
 
     setMessages((prevMessages) => [
       ...prevMessages,
@@ -150,13 +176,13 @@ export default function Chat() {
       }
       
       // Save the user and assistant messages to Firestore
-      await saveMessage(userMessage);
+      await saveMessage(userMessage, conversationId);
       const assistantMessage: ChatMessage = {
         role: 'assistant',
         content: assistantResponse,
         createdAt: Timestamp.now(),
       };
-      await saveMessage(assistantMessage);
+      await saveMessage(assistantMessage, conversationId);
     } catch (error) {
       const assistantMessage: ChatMessage = {
         role: 'assistant',
@@ -167,7 +193,7 @@ export default function Chat() {
         ...messages,
         assistantMessage
       ]);
-      await saveMessage(assistantMessage);
+      await saveMessage(assistantMessage, conversationId);
       console.error('Error:', error);
     }
 
