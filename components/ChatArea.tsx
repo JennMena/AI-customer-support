@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SendHorizontalIcon } from "lucide-react";
+import { SendHorizontalIcon, ThumbsUpIcon, ThumbsDownIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser } from "@clerk/nextjs";
@@ -20,6 +21,23 @@ export default function ChatArea({
 
     const { user } = useUser();
     const userImage = user?.imageUrl;
+
+    const [thumbs, setThumbs] = useState<{ [key: number]: { up: boolean; down: boolean } }>({});
+    const [thumbsClicked, setThumbsClicked] = useState<{ [key: number]: boolean }>({});
+
+    const handleThumbClick = (index: number, type: 'up' | 'down') => {
+        setThumbs(prevThumbs => ({
+            ...prevThumbs,
+            [index]: {
+                up: type === 'up' ? !prevThumbs[index]?.up : false,
+                down: type === 'down' ? !prevThumbs[index]?.down : false
+            }
+        }));
+        setThumbsClicked(prev => ({
+            ...prev,
+            [index]: true
+        }));
+    };
 
     return (
         <div className="text-zinc-700">
@@ -49,6 +67,18 @@ export default function ChatArea({
                                     <ReactMarkdown>
                                         {m.content}
                                     </ReactMarkdown>
+                                    {m.role === 'assistant' && index > 0 && (
+                                        <div className="flex space-x-2 mt-2">
+                                            <ThumbsUpIcon
+                                                className={`h-5 w-5 ${thumbs[index]?.up ? 'text-green-500' : 'text-gray-500'} ${thumbsClicked[index] ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                onClick={() => !thumbsClicked[index] && handleThumbClick(index, 'up')}
+                                            />
+                                            <ThumbsDownIcon
+                                                className={`h-5 w-5 ${thumbs[index]?.down ? 'text-red-500' : 'text-gray-500'} ${thumbsClicked[index] ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                onClick={() => !thumbsClicked[index] && handleThumbClick(index, 'down')}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {m.role === 'user' && (
