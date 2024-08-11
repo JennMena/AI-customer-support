@@ -128,12 +128,13 @@ export default function Chat() {
         const { done, value } = await reader.read();
         if (done) break;
         const text = decoder.decode(value, { stream: true }); // Decode the streamed response
+        assistantResponse += text;
         setMessages((messages) => {
           let lastMessage = messages[messages.length - 1];  // Get the last message (assistant's placeholder)
           let otherMessages = messages.slice(0, messages.length - 1);  // Get all other messages
           return [
             ...otherMessages,
-            { ...lastMessage, content: lastMessage.content + text },  // Append the decoded text to the assistant's message
+            { ...lastMessage, content: assistantResponse },  // Append the decoded text to the assistant's message
           ]
         })
       }

@@ -26,7 +26,7 @@ function LandingPage() {
 
                         <div className="mt-8 flex flex-wrap justify-center gap-4">
                             <a
-                                className="flex flex-row items-center w-full rounded bg-light_green px-8 py-4 font-medium text-white shadow hover:bg-dark_green focus:outline-none focus:ring active:bg-dark_green500 sm:w-auto opacity-90"
+                                className="flex flex-row justify-center items-center w-full rounded bg-light_green px-8 py-4 font-medium text-white shadow hover:bg-dark_green focus:outline-none focus:ring active:bg-dark_green500 sm:w-auto opacity-90"
                                 href="sign-in"
                             >
                                 Start Discovering
