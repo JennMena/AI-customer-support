@@ -4,6 +4,7 @@ import { SendHorizontalIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser } from "@clerk/nextjs";
+import ReactMarkdown from 'react-markdown';
 
 export default function ChatArea({
     message,
@@ -23,10 +24,10 @@ export default function ChatArea({
     const userImage = user?.imageUrl;
 
     return (
-        <section className="text-zinc-700">
-            <div className="container flex mt-4 flex-col items-center justify-center">
-                {/*<h1 className="font-serif text-2xl font-medium">Hi {user?.firstName}! Ready to plan your trip?</h1>*/}
-                <div className="mt-4 w-full max-w-lg">
+        <div className="text-zinc-700">
+            <div className="container flex mt-5 flex-col items-center justify-center">
+                
+                <div className="mt-4 w-full max-w-[650px]">
                     {/* response container */}
                     <ScrollArea
                         className="mb-2 h-[550px] rounded-md border p-4 flex flex-col space-y-2 flex-grow overflow-auto max-h-full"
@@ -41,15 +42,16 @@ export default function ChatArea({
                                 {m.role === 'assistant' && (
                                     <Avatar>
                                         <AvatarImage src='' />
-                                        <AvatarFallback className="bg-emerald-500 text-white">WT</AvatarFallback>
+                                        <AvatarFallback className="bg-light_green text-white">WT</AvatarFallback>
                                     </Avatar>
                                 )}
 
                                 <div
-                                    className={`${m.role === 'assistant' ? 'bg-blue-500' : 'bg-green-500'
-                                        } text-white rounded-lg p-3 max-w-xs mt-2`}
+                                    className={`border-2 border-opacity-50 ${m.role === 'assistant' ? 'border-dark_green' : 'border-blue-800'} text-black rounded-lg p-3 max-w-xs mt-2`}
                                 >
-                                    {m.content}
+                                    <ReactMarkdown>
+                                        {m.content}
+                                    </ReactMarkdown>
                                 </div>
 
                                 {m.role === 'user' && (
@@ -63,12 +65,18 @@ export default function ChatArea({
                     </ScrollArea>
                 </div>
                 {/* input form */}
-                <div className="relative w-full max-w-lg">
+                <div className="relative mt-1 w-full max-w-[600px]">
                     <Input
                         value={message}
                         placeholder="Ask me anything..."
                         className="pr-12 placeholder:italic placeholder:text-zinc-600 w-full"
                         onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault(); 
+                                sendMessages(); 
+                            }
+                        }}
                     />
                     <Button
                         size="icon"
@@ -82,6 +90,6 @@ export default function ChatArea({
                     </Button>
                 </div>
             </div>
-        </section>
+        </div>
     );
 }

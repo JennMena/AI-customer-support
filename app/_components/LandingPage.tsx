@@ -1,34 +1,38 @@
 import React from 'react'
 import Constants from '../_utils/Constants'
 import Image from 'next/image'
+import Header from './Header'
 
 function LandingPage() {
     return (
-        <div className="h-screen overflow-hidden">
-            <section className="bg-[#FAFAFA] dark:bg-slate-800 h-full flex items-center">
+        <div className="h-screen overflow-hidden relative">
+
+            <video autoPlay loop muted className="absolute inset-0 object-cover w-full h-full">
+                <source src="/assets/bg.mp4" type="video/mp4" />
+            </video>
+            <div className="bg-white backdrop-blur-lg opacity-90">
+                <Header />
+                </div>
+            <section className="h-full flex items-center relative z-10">
                 <div className="mx-auto max-w-screen-xl px-4 py-16 lg:py-24 lg:flex h-full">
                     <div className="mx-auto max-w-xl text-center">
-                        <h1 className="text-3xl font-extrabold sm:text-5xl text-black dark:text-white">
+                        <h1 className="text-3xl font-extrabold sm:text-6xl text-white rounded-lg p-4 transform transition-transform duration-300" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                             Discover, explore, and plan your perfect trip with WanderTalk!
                         </h1>
-                        <div className="flex justify-center">
-                            <Image src="/images/option1.jpg" width={400} height={400} alt='Hero section image' />
-                        </div>
-
-                        <p className="mt-4 sm:text-xl/relaxed text-gray-500 dark:text-gray-300">
-                            {Constants.descHero ? Constants.descHero : 'Your ultimate travel companion, providing personalized recommendations for travel locations, dining, events, and photo spots based on your interests.'}
+                        <p className="mt-4 sm:text-xl/relaxed text-gray-300 bg-white bg-opacity-30 backdrop-blur-lg p-4 rounded-lg shadow-lg">
+                            {Constants.descHero}
                         </p>
 
                         <div className="mt-8 flex flex-wrap justify-center gap-4">
                             <a
-                                className="block w-full rounded bg-primary px-12 py-3 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring active:bg-blue-500 sm:w-auto"
-                                href="#"
+                                className="block w-full rounded bg-light_green px-12 py-3 text-sm font-medium text-white shadow hover:bg-dark_green focus:outline-none focus:ring active:bg-dark_green500 sm:w-auto opacity-90"
+                                href="sign-in"
                             >
                                 Start Discovering
                             </a>
 
                             <a
-                                className="dark:bg-gray-100 block w-full rounded px-12 py-3 text-sm font-medium text-primary shadow hover:text-blue-700 focus:outline-none focus:ring active:text-blue-500 sm:w-auto"
+                              className="block w-full rounded bg-light_green px-12 py-3 text-sm font-medium text-white shadow hover:bg-dark_green focus:outline-none focus:ring active:bg-dark_green 500 sm:w-auto opacity-90"
                                 href="#"
                             >
                                 Learn More
