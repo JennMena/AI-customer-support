@@ -11,7 +11,10 @@ export default function Header() {
             <header>
                 <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8 border-b">
 
-                    <Image src='/logo.svg' alt="Logo" width={150} height={100} />
+                    <div className="flex items-center gap-3">
+                        <Image src='/logo.svg' alt="Logo" width={40} height={40} />
+                        <span className="text-xl font-bold text-dark_green">WanderTalk</span>
+                    </div>
 
                     <div className="flex flex-1 items-center justify-end md:justify-between">
                         <nav aria-label="Global" className="hidden md:block">

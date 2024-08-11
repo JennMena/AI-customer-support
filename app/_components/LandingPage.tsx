@@ -2,6 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import Header from './Header'
 import { DESC_HERO } from '@/lib/constants'
+import { ArrowRightIcon } from 'lucide-react'
 
 function LandingPage() {
     return (
@@ -19,25 +20,26 @@ function LandingPage() {
                         <h1 className="text-3xl font-extrabold sm:text-6xl text-white rounded-lg p-4 transform transition-transform duration-300" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                             Discover, explore, and plan your perfect trip with WanderTalk!
                         </h1>
-                        <p className="mt-4 sm:text-xl/relaxed text-gray-300 bg-white bg-opacity-30 backdrop-blur-lg p-4 rounded-lg shadow-lg">
+                        <p className="mt-4 sm:text-xl/relaxed text-gray-200 bg-gray-500 bg-opacity-40 backdrop-blur-lg p-4 rounded-lg shadow-lg">
                             {DESC_HERO}
                         </p>
 
                         <div className="mt-8 flex flex-wrap justify-center gap-4">
                             <a
-                                className="block w-full rounded bg-light_green px-12 py-3 text-sm font-medium text-white shadow hover:bg-dark_green focus:outline-none focus:ring active:bg-dark_green500 sm:w-auto opacity-90"
+                                className="flex flex-row items-center w-full rounded bg-light_green px-8 py-4 font-medium text-white shadow hover:bg-dark_green focus:outline-none focus:ring active:bg-dark_green500 sm:w-auto opacity-90"
                                 href="sign-in"
                             >
                                 Start Discovering
+                                <ArrowRightIcon className="w-5 h-5 ml-2" aria-hidden="true" />
                             </a>
-
+                            {/*
                             <a
                               className="block w-full rounded bg-light_green px-12 py-3 text-sm font-medium text-white shadow hover:bg-dark_green focus:outline-none focus:ring active:bg-dark_green 500 sm:w-auto opacity-90"
                                 href="#"
                             >
                                 Learn More
-                            </a>
-                        </div>
+                            </a> */}
+                        </div> 
                     </div>
                 </div>
             </section>
