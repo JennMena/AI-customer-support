@@ -148,7 +148,7 @@ export default function Chat() {
           'Content-Type': 'application/json',
         },
         //body: JSON.stringify({ messages: [...messages, userMessage] }),
-        body: JSON.stringify({ question: userMessage.content }),
+        body: JSON.stringify({ question: userMessage.content, messages }),
       });
 
       if (!response.ok) {

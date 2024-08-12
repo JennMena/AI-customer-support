@@ -1,16 +1,29 @@
 import { NextResponse } from "next/server";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
+import { BaseMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
 import { createVectorStore, llm } from "@/lib/ai";
-import { RAG_PROMPT } from "@/lib/prompts";
+import { QA_SYSTEM_PROMPT } from "@/lib/prompts";
+import { ChatMessage } from "@/lib/types";
 
 interface RetrieveRequest {
   question: string;
+  messages: ChatMessage[];
+  maxLastMessages?: number; // Maximum number of last messages to include in the context
+}
+
+interface PromptTemplateInput {
+  context: string;
+  question: string;
+  chatHistory: BaseMessage[];
 }
 
 export async function POST(request: Request) {
   const data: RetrieveRequest = await request.json();
-  const { question } = data;
+  const { question, messages, maxLastMessages = 10 } = data;
   
   // 1. Retrieve the most relevant results
   const vectorStore = await createVectorStore();
@@ -19,13 +32,29 @@ export async function POST(request: Request) {
   }); // See https://js.langchain.com/v0.2/docs/integrations/vectorstores/pinecone/
   const results = await retriever.invoke(question);
 
+  const context = results.map((doc, i) => `Extract ${i + 1}:\n${doc.pageContent}`).join("\n\n");
+  // Only include the last `maxLastMessages` messages in the chat history
+  const chatHistory = messages.slice(-maxLastMessages).map((message) => {
+    if (message.role === "user") {
+      return new HumanMessage(message.content);
+    } else {
+      return new AIMessage(message.content);
+    }
+  });
+
   // 2. Generate an answer
-  const promptTemplate = PromptTemplate.fromTemplate(RAG_PROMPT); // See https://js.langchain.com/v0.2/docs/concepts/#prompt-templates
+  // const promptTemplate = PromptTemplate.fromTemplate(RAG_PROMPT); // See https://js.langchain.com/v0.2/docs/concepts/#prompt-templates (use this if you don't want to include the chat history)
+  const promptTemplate = ChatPromptTemplate.fromMessages<PromptTemplateInput>([
+    ["system", QA_SYSTEM_PROMPT],
+    new MessagesPlaceholder("chatHistory"),
+    ["human", "{question}"],
+  ]); // See https://js.langchain.com/v0.2/docs/tutorials/qa_chat_history/#chain-with-chat-history (use this if you want to include the chat history)
   const outputParser = new StringOutputParser();
   const chain = promptTemplate.pipe(llm).pipe(outputParser);  // See https://js.langchain.com/v0.2/docs/how_to/sequence/
   const chainOutput = await chain.stream({
-    context: results.map((doc, i) => `* ${doc.pageContent}`).join("\n"),
+    context: context,
     question: question,
+    chatHistory: chatHistory,
   });
 
   // Handle the streaming response

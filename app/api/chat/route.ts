@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { SYSTEM_PROMPT } from '@/lib/prompts';
+import { CONVERSATION_SYSTEM_PROMPT } from '@/lib/prompts';
 import { ChatMessage } from '@/lib/types';
 
 interface ChatRequest {
@@ -14,7 +14,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         messages: [
             {
                 role: 'system',
-                content: SYSTEM_PROMPT
+                content: CONVERSATION_SYSTEM_PROMPT
             },
             ...data.messages
         ],
