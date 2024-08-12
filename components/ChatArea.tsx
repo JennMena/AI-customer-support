@@ -48,6 +48,7 @@ export default function ChatArea({
     try {
       const docRef = await addDoc(collection(db, "Feedback"), {
         messageId: index,
+        message: messages[index].content,
         thumbType: type,
         userId: user?.id,
         timestamp: new Date(),
