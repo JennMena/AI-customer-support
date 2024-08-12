@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Trash } from 'lucide-react'; // Importing the trash icon from lucide-react
+import { Loader, Trash } from 'lucide-react'; // Importing the trash icon from lucide-react
 import toast, { Toaster } from 'react-hot-toast'; // Importing the toast function from react-hot-toast
 import { useUser } from "@clerk/nextjs";
 import { Conversation } from '@/lib/types';
@@ -13,9 +13,10 @@ interface ConversationListProps {
   onDeleteConversation: (id: string) => void;
   currentConversationId: string | null;
   user: UserResource;
+  loading: boolean;
 }
 
-const HistoryArea: React.FC<ConversationListProps> = ({ conversations, onSelectConversation, onDeleteConversation, user, currentConversationId }) => {
+const HistoryArea: React.FC<ConversationListProps> = ({ conversations, onSelectConversation, onDeleteConversation, user, currentConversationId, loading }) => {
   const handleDelete = (id: string) => {
     // Confirmation toast
     toast((t) => (
@@ -43,8 +44,15 @@ const HistoryArea: React.FC<ConversationListProps> = ({ conversations, onSelectC
   return (
     <div>
       <Toaster /> {/* Ensure this is included */}
-      <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">History of chats</h2>
-      <h4 className="text-[15px] font-medium mb-5">Hi {user?.firstName}! Here are your past conversations.</h4>
+      <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Chats Timeline</h2>
+      <h4 className="text-[15px] text-slate-500 font-medium mb-5">Here are your past conversations.</h4>
+      {
+        loading && (
+          <div className="flex w-full justify-center items-center">
+            <Loader size={20} className="block animate-spin" />
+          </div>
+        )
+      }
       <ul className="space-y-2">
         {conversations.map((conversation) => (
           <li key={conversation.id} className="cursor-pointer flex items-center justify-between">

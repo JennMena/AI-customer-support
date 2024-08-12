@@ -26,6 +26,8 @@ export default function Chat() {
 
   const [isLoading, setIsLoading] = useState(false)
 
+  const [conversationsLoading, setConversationsLoading] = useState(true);
+
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   const handleSelectConversation = (conversationId: string) => {
@@ -85,7 +87,7 @@ export default function Chat() {
   useEffect(() => {
     if (user) {
       startNewConversation();
-      fetchHistory();
+      fetchHistoryWithLoading();
     }
   }, [user]);
 
@@ -243,6 +245,12 @@ export default function Chat() {
     setConversations(history);
   };
 
+  const fetchHistoryWithLoading = async () => {
+    setConversationsLoading(true);
+    await fetchHistory();
+    setConversationsLoading(false);
+  };
+
   const onDeleteConversation = async (id: string) => {
     try {
       await deleteDoc(doc(db, FirebaseCollection.CHATS, id));
@@ -282,7 +290,9 @@ export default function Chat() {
             onSelectConversation={handleSelectConversation}
             onDeleteConversation={onDeleteConversation}
             currentConversationId={currentConversationId}
-            user={user} />
+            user={user}
+            loading={conversationsLoading}
+          />
         </div>
         <div className="md:w-2/3 lg:w-3/4 w-full">
           <ChatArea

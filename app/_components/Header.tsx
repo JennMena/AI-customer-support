@@ -33,10 +33,10 @@ export default function Header() {
                             <div className="sm:flex sm:gap-4">
                                 {isSignedIn && (
                                     <a
-                                        className="hidden rounded-md border-2 border-dark_green bg-gray-100 px-5 py-2.5 text-sm font-medium text-dark_green transition hover:bg-dark_green hover:text-white sm:block mr-4"
-                                        href={window.location.pathname === '/chat' ? undefined : '/chat'}
+                                        className="hidden rounded-md border-2 border-dark_green bg-gray-100 px-5 py-2.5 text-sm font-medium text-dark_green transition hover:bg-dark_green hover:text-white sm:block mr-4 cursor-pointer"
+                                        href='/chat'
                                     >
-                                        New Chat
+                                      <span className="pointer-events-none">New Chat</span>
                                     </a>
                                 )}
 
