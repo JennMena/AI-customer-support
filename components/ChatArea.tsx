@@ -58,11 +58,9 @@ export default function ChatArea({
         <div className="text-zinc-700">
             <div className="container flex mt-5 flex-col items-center justify-center">
                 
-                <div className="mt-4 w-full max-w-[650px]">
-                    {/* response container */}
-                    <ScrollArea
-                        className="mb-2 h-[550px] rounded-md border p-4 flex flex-col space-y-2 flex-grow overflow-auto max-h-full"
-                    >
+                <div className="mt-4 mb-2 w-full max-w-[650px]">
+                    <ScrollArea className=" h-[550px] rounded-md border max-h-full">
+                      <div className="flex flex-col space-y-2 p-4">
                         {messages.map((m, index) => (
                             <div
                                 key={index}
@@ -105,6 +103,7 @@ export default function ChatArea({
                             </div>
                         ))}
                         <div ref={messagesEndRef} />
+                      </div>
                     </ScrollArea>
                 </div>
                 {/* input form */}
